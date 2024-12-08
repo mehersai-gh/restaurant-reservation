@@ -1,32 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <h1 class="text-center">Admin Dashboard</h1>
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <form method="POST" enctype="multipart/form-data">
-                {{ form.hidden_tag() }}
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}
-                    {{ form.name(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.four_table.label(class="form-label") }}
-                    {{ form.four_table(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.two_table.label(class="form-label") }}
-                    {{ form.two_table(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.photo.label(class="form-label") }}
-                    {{ form.photo(class="form-control") }}
-                </div>
-                <div class="d-grid">
-                    {{ form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
+    <div class="row" style="display: flex;justify-content: space-between;">
+        <div class="col-sm-4"><h1 class="text-center">Admin Dashboard</h1></div>
+        <div class="col-sm-2">
+            <a href="{{ url_for('admin_dashboard_add') }}" class="btn btn-primary">Add New Restaurant</a>
         </div>
+    </div>
+    <div class="row">
+        {% for restaurant in restaurants %}
+        <div class="col-md-4">
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
+                <div class="card-body">
+                    <h5 class="card-title text-center">
+                        <a href="{{ url_for('restaurant_detail', restaurant_id=restaurant.id) }}">{{ restaurant.name }}</a>
+                    </h5>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

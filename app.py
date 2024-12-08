@@ -121,18 +121,26 @@ def cancel_booking(booking_id):
         flash("Unauthorized or invalid booking!", "danger")
         return redirect(url_for('profile_bookings'))
 
-    # Update restaurant table availability
+    # Fetch the restaurant details
     restaurant = restaurant_db.get(Query().id == booking['restaurant_id'])
-    if restaurant:
-        bookings_db.update(
-            {
-                'four_table_rem': restaurant['four_table_rem'] + booking['four_table'],
-                'two_table_rem': restaurant['two_table_rem'] + booking['two_table']
-            },
-            Query().id == booking['restaurant_id']
-        )
+    if not restaurant:
+        flash("Restaurant not found!", "danger")
+        return redirect(url_for('profile_bookings'))
 
-    # Update booking status to "cancelled"
+    # Get the booking's date and slot
+    booking_date = booking['date']
+    booking_slot = booking['slot']
+
+    # Update the specific slot's availability
+    slots = restaurant['slots']
+    if booking_date in slots and booking_slot in slots[booking_date]:
+        slots[booking_date][booking_slot]['four_table_rem'] += booking['four_table']
+        slots[booking_date][booking_slot]['two_table_rem'] += booking['two_table']
+
+        # Update the restaurant slots in the database
+        restaurant_db.update({'slots': slots}, Query().id == restaurant['id'])
+
+    # Update the booking status to "cancelled"
     bookings_db.update({'status': 'cancelled'}, Query().id == booking_id)
 
     flash("Booking cancelled successfully!", "success")
@@ -209,6 +217,16 @@ def admin_dashboard():
     if current_user.id != 'admin':
         abort(403)  # Return a "Forbidden" error
 
+    # Fetch all restaurants to display on the admin page
+    restaurants = restaurant_db.all()
+    return render_template('admin/home.html', restaurants=restaurants)
+
+@app.route('/admin_dashboard/add', methods=['GET', 'POST'])
+@login_required
+def admin_dashboard_add():
+    if current_user.id != 'admin':
+        abort(403)  # Return a "Forbidden" error
+
     form = RestaurantForm()
     if form.validate_on_submit():
         # Process form data
@@ -245,7 +263,7 @@ def admin_dashboard():
         flash('Restaurant added successfully!', 'success')
         return redirect(url_for('admin_dashboard'))
 
-    return render_template('admin/home.html', form=form)
+    return render_template('admin/add_restaurant.html', form=form)
 
 #Cron Job to Update Slots
 def update_slots():
