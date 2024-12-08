@@ -4,9 +4,11 @@ from flask import Flask, render_template, redirect, url_for, request, flash, abo
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from tinydb import TinyDB, Query
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 #Importing Forms
 from forms.user_forms import LoginForm, RegisterForm
+from forms.restaurant_forms import RestaurantForm
 
 #To import environmental Variables
 from dotenv import load_dotenv
@@ -22,9 +24,9 @@ app.secret_key = os.getenv("SECRET_KEY")
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# TinyDB Setup
-user_db = TinyDB('db/user_db.json')  # Local database file
-UserQuery = Query()
+# TinyDB Setup -  Local database file
+user_db = TinyDB('db/user_db.json')  
+restaurant_db = TinyDB('db/restaurant_db.json')
 
 # User Model
 class User(UserMixin):
@@ -34,7 +36,7 @@ class User(UserMixin):
 # Login Manager Loader
 @login_manager.user_loader
 def load_user(user_id):
-    user = user_db.get(UserQuery.username == user_id)
+    user = user_db.get(Query().username == user_id)
     if user:
         return User(user_id)
     return None
@@ -42,7 +44,9 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    return render_template("home.html")
+    # Fetch all restaurants to display on the home page
+    restaurants = restaurant_db.all()
+    return render_template('home.html', restaurants=restaurants)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -50,7 +54,7 @@ def login():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
-        user = user_db.get(UserQuery.username == username)
+        user = user_db.get(Query().username == username)
         if user and check_password_hash(user['password'], password):
             login_user(User(id=username))
             flash("Logged in successfully!", "success")
@@ -65,7 +69,7 @@ def register():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
-        if user_db.get(UserQuery.username == username):
+        if user_db.get(Query().username == username):
             flash("Username already exists!", "warning")
         else:
             # Hash the password before storing it
@@ -87,12 +91,40 @@ def logout():
 def profile():
     return render_template('profile.html', name=current_user.id)
 
-@app.route('/admin_dashboard')
+@app.route('/admin_dashboard', methods=['GET', 'POST'])
 @login_required
 def admin_dashboard():
     if current_user.id != 'admin':
         abort(403)  # Return a "Forbidden" error
-    return render_template('admin/home.html')
+
+    form = RestaurantForm()
+    if form.validate_on_submit():
+        # Process form data
+        name = form.name.data
+        four_table = form.four_table.data
+        two_table = form.two_table.data
+        photo = form.photo.data
+
+        # Save the photo file
+        filename = secure_filename(photo.filename)
+        photo.save(os.path.join("static/images", filename))
+
+        # Insert restaurant data into TinyDB
+        restaurant_id = len(restaurant_db) + 1  # Simple ID generation
+        restaurant_db.insert({
+            'id': restaurant_id,
+            'name': name,
+            'four_table': four_table,
+            'two_table': two_table,
+            'four_table_rem': four_table,
+            'two_table_rem': two_table,
+            'photo': filename
+        })
+
+        flash('Restaurant added successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/home.html', form=form)
 
 # Run the app
 if __name__ == "__main__":
