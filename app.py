@@ -2,11 +2,11 @@ import os
 
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, EqualTo, Length
 from tinydb import TinyDB, Query
 from werkzeug.security import generate_password_hash, check_password_hash
+
+#Importing Forms
+from forms.user_forms import LoginForm, RegisterForm
 
 #To import environmental Variables
 from dotenv import load_dotenv
@@ -38,18 +38,6 @@ def load_user(user_id):
     if user:
         return User(user_id)
     return None
-
-# Flask-WTF Forms
-class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
-
-class RegisterForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=5)])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Register')
 
 # Routes
 @app.route('/')
