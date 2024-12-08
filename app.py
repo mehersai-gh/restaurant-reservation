@@ -111,6 +111,32 @@ def profile_bookings():
         cancelled=cancelled
     )
 
+@app.route('/cancel_booking/<int:booking_id>', methods=['POST'])
+@login_required
+def cancel_booking(booking_id):
+    # Fetch the booking by ID
+    booking = bookings_db.get(Query().id == booking_id)
+    if not booking or booking['user'] != current_user.id:
+        flash("Unauthorized or invalid booking!", "danger")
+        return redirect(url_for('profile_bookings'))
+
+    # Update restaurant table availability
+    restaurant = restaurant_db.get(Query().id == booking['restaurant_id'])
+    if restaurant:
+        bookings_db.update(
+            {
+                'four_table_rem': restaurant['four_table_rem'] + booking['four_table'],
+                'two_table_rem': restaurant['two_table_rem'] + booking['two_table']
+            },
+            Query().id == booking['restaurant_id']
+        )
+
+    # Update booking status to "cancelled"
+    bookings_db.update({'status': 'cancelled'}, Query().id == booking_id)
+
+    flash("Booking cancelled successfully!", "success")
+    return redirect(url_for('profile_bookings'))
+
 
 @app.route('/restaurant/<int:restaurant_id>')
 def restaurant_detail(restaurant_id):

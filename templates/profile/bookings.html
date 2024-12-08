@@ -12,6 +12,9 @@
             <p>4-Seater Tables: {{ booking.four_table }}</p>
             <p>2-Seater Tables: {{ booking.two_table }}</p>
             <p>Special Request: {{ booking.special_request }}</p>
+            <form method="POST" action="{{ url_for('cancel_booking', booking_id=booking.id) }}">
+                <button type="submit" class="btn btn-danger">Cancel Reservation</button>
+            </form>
         </div>
     </div>
     {% endfor %}
