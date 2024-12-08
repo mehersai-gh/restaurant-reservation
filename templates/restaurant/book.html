@@ -47,17 +47,41 @@
     const slotDropdown = document.getElementById('slot');
     const dateDropdown = document.getElementById('date');
 
+    // Helper function to parse a time slot into a Date object
+    function parseSlotTime(date, slot) {
+        const [startTime] = slot.split('-'); // Get the start time
+        const [hours, minutes] = startTime.replace(/am|pm/g, '').split(':'); // Extract hours and minutes
+        const isPM = startTime.includes('pm');
+        const slotDate = new Date(date);
+        slotDate.setHours(isPM ? parseInt(hours) % 12 + 12 : parseInt(hours) % 12); // Convert to 24-hour format
+        slotDate.setMinutes(parseInt(minutes) || 0); // Set minutes
+        return slotDate;
+    }
+
     // Function to populate slots based on selected date
     function populateSlots(selectedDate) {
         // Clear existing options
         slotDropdown.innerHTML = '';
+
+        // Get the current time
+        const now = new Date();
 
         // Get the slots for the selected date
         const slots = restaurantSlots[selectedDate];
         for (const [slot, data] of Object.entries(slots)) {
             const option = document.createElement('option');
             option.value = slot;
+
+            // Format the option text
             option.textContent = `${slot} (4-Seaters: ${data.four_table_rem}, 2-Seaters: ${data.two_table_rem})`;
+
+            // Check if the slot is in the past
+            const slotTime = parseSlotTime(selectedDate, slot);
+            if (slotTime < now && selectedDate === now.toISOString().split('T')[0]) {
+                option.disabled = true; // Disable the option
+                option.style.color = 'grey'; // Grey out the text
+            }
+
             slotDropdown.appendChild(option);
         }
     }
