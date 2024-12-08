@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Book a Table at {{ restaurant.name }}</h2>
+    <div class="row">
+        <div class="col-md-3">
+        <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="img-fluid" alt="{{ restaurant.name }}">
+        </div>
+        <div class="col-md-9">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="four_table" class="form-label">Number of 4-Seater Tables</label>
+                    <input type="number" class="form-control" id="four_table" name="four_table" min="0" max="{{ restaurant.four_table_rem }}">
+                </div>
+                <div class="mb-3">
+                    <label for="two_table" class="form-label">Number of 2-Seater Tables</label>
+                    <input type="number" class="form-control" id="two_table" name="two_table" min="0" max="{{ restaurant.two_table_rem }}">
+                </div>
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" class="form-control" id="date" name="date" required>
+                </div>
+                <div class="mb-3">
+                    <label for="time" class="form-label">Time</label>
+                    <input type="time" class="form-control" id="time" name="time" required>
+                </div>
+                <div class="mb-3">
+                    <label for="special_request" class="form-label">Special Request</label>
+                    <textarea class="form-control" id="special_request" name="special_request" rows="3" maxlength="100"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Confirm Booking</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

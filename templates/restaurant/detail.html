@@ -3,7 +3,7 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card text-center">
                 <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
                 <div class="card-body">
                     <h2 class="card-title text-center" style="margin-bottom:1rem;">{{ restaurant.name }}</h2>
@@ -15,7 +15,7 @@
                             {{ restaurant.four_table }} Available
                         </span>
                     </p>
-                    <p class="text-center">
+                    <p class="text-center" style="margin-bottom:1rem;">
                         <span>
                             <span>2</span>
                             x
@@ -23,6 +23,7 @@
                             {{ restaurant.two_table }} Available
                         </span>
                     </p>
+                    <a class="btn btn-primary" href="{{ url_for('restaurant_booking', restaurant_id=restaurant.id) }}" style="width: 50%;">Book</a>
                 </div>
             </div>
         </div>

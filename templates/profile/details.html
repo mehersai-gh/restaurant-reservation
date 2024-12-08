@@ -3,5 +3,6 @@
 <div class="text-center">
     <h1>Welcome, {{ name }}!</h1>
     <p>You are successfully logged in.</p>
+    <a class="btn btn-primary" href="{{ url_for('profile_bookings') }}">View Bookings</a>
 </div>
 {% endblock %}

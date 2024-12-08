@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Your Bookings</h2>
+
+    <h3>Ongoing Bookings</h3>
+    {% for booking in ongoing %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ booking.restaurant_name }}</h5>
+            <p>Date: {{ booking.date }} | Time: {{ booking.time }}</p>
+            <p>4-Seater Tables: {{ booking.four_table }}</p>
+            <p>2-Seater Tables: {{ booking.two_table }}</p>
+            <p>Special Request: {{ booking.special_request }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <h3>Completed Bookings</h3>
+    {% for booking in completed %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ booking.restaurant_name }}</h5>
+            <p>Date: {{ booking.date }} | Time: {{ booking.time }}</p>
+            <p>4-Seater Tables: {{ booking.four_table }}</p>
+            <p>2-Seater Tables: {{ booking.two_table }}</p>
+            <p>Special Request: {{ booking.special_request }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    <h3>Cancelled Bookings</h3>
+    {% for booking in cancelled %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ booking.restaurant_name }}</h5>
+            <p>Date: {{ booking.date }} | Time: {{ booking.time }}</p>
+            <p>4-Seater Tables: {{ booking.four_table }}</p>
+            <p>2-Seater Tables: {{ booking.two_table }}</p>
+            <p>Special Request: {{ booking.special_request }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
