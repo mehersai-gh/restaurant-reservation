@@ -91,6 +91,16 @@ def logout():
 def profile():
     return render_template('profile.html', name=current_user.id)
 
+
+@app.route('/restaurant/<int:restaurant_id>')
+def restaurant_detail(restaurant_id):
+    # Fetch restaurant details using the restaurant ID
+    restaurant = restaurant_db.get(Query().id == restaurant_id)
+    if not restaurant:
+        abort(404)  # Return a 404 page if the restaurant doesn't exist
+    return render_template('restaurant/detail.html', restaurant=restaurant)
+
+#Admin Functionality
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 @login_required
 def admin_dashboard():

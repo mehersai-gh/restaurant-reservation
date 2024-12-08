@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-3">
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
+                <div class="card-body">
+                    <h2 class="card-title text-center" style="margin-bottom:1rem;">{{ restaurant.name }}</h2>
+                    <p class="text-center">
+                        <span>
+                            <span>4</span>
+                            x
+                            <img src="{{ url_for('static', filename='logo/user.png') }}" alt="4-Seater Table" style="width: 20px;margin-right: 2rem;">
+                            {{ restaurant.four_table }} Available
+                        </span>
+                    </p>
+                    <p class="text-center">
+                        <span>
+                            <span>2</span>
+                            x
+                            <img src="{{ url_for('static', filename='logo/user.png') }}" alt="2-Seater Table" style="width: 20px;margin-right: 2rem;">
+                            {{ restaurant.two_table }} Available
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

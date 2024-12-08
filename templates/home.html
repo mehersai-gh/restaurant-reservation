@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="text-center">
-    <div class="container">
-        <h1 class="text-center">Restaurants</h1>
-        <div class="row">
-            {% for restaurant in restaurants %}
-            <div class="col-md-3">
-                <div class="card">
-                    <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
-                    <div class="card-body">
-                        <h5 class="card-title text-center">{{ restaurant.name }}</h5>
-                    </div>
+<div class="container">
+    <h1 class="text-center">Restaurants</h1>
+    <div class="row">
+        {% for restaurant in restaurants %}
+        <div class="col-md-4">
+            <div class="card">
+                <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
+                <div class="card-body">
+                    <h5 class="card-title text-center">
+                        <a href="{{ url_for('restaurant_detail', restaurant_id=restaurant.id) }}">{{ restaurant.name }}</a>
+                    </h5>
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
