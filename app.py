@@ -1,18 +1,30 @@
+import os
+
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, EqualTo, Length
+from tinydb import TinyDB, Query
+from werkzeug.security import generate_password_hash, check_password_hash
+
+#To import environmental Variables
+from dotenv import load_dotenv
+
+#Loading Environmental Variables
+load_dotenv()
 
 # Flask App Setup
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY")
 
 # Flask-Login Setup
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Dummy User Database
-users = {"admin": {"password": "password"}}
+# TinyDB Setup
+db = TinyDB('db/db.json')  # Local database file
+UserQuery = Query()
 
 # User Model
 class User(UserMixin):
@@ -22,15 +34,22 @@ class User(UserMixin):
 # Login Manager Loader
 @login_manager.user_loader
 def load_user(user_id):
-    if user_id in users:
+    user = db.get(UserQuery.username == user_id)
+    if user:
         return User(user_id)
     return None
 
-# Flask-WTF Form
+# Flask-WTF Forms
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Register')
 
 # Routes
 @app.route('/')
@@ -43,14 +62,30 @@ def login():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
-        if username in users and users[username]['password'] == password:
-            user = User(id=username)
-            login_user(user)
+        user = db.get(UserQuery.username == username)
+        if user and check_password_hash(user['password'], password):
+            login_user(User(id=username))
             flash("Logged in successfully!", "success")
             return redirect(url_for('profile'))
         else:
             flash("Invalid username or password!", "danger")
     return render_template('login.html', form=form)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        if db.get(UserQuery.username == username):
+            flash("Username already exists!", "warning")
+        else:
+            # Hash the password before storing it
+            hashed_password = generate_password_hash(password, method='scrypt')
+            db.insert({'username': username, 'password': hashed_password})
+            flash("Registration successful! Please log in.", "success")
+            return redirect(url_for('login'))
+    return render_template('register.html', form=form)
 
 @app.route('/logout')
 @login_required
