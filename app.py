@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, redirect, url_for, request, flash, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from tinydb import TinyDB, Query
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -146,7 +147,6 @@ def restaurant_detail(restaurant_id):
         abort(404)  # Return a 404 page if the restaurant doesn't exist
     return render_template('restaurant/detail.html', restaurant=restaurant)
 
-# Route to Handle Restaurant Bookings
 @app.route('/restaurant/<int:restaurant_id>/book', methods=['GET', 'POST'])
 @login_required
 def restaurant_booking(restaurant_id):
@@ -155,27 +155,32 @@ def restaurant_booking(restaurant_id):
     if not restaurant:
         abort(404)
 
+    today = datetime.now().date()
+    available_dates = [(today + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+
     if request.method == 'POST':
         # Get form data
+        selected_date = request.form.get('date')
+        selected_slot = request.form.get('slot')
         num_four_table = int(request.form.get('four_table', 0))
         num_two_table = int(request.form.get('two_table', 0))
-        date = request.form.get('date')
-        time = request.form.get('time')
-        special_request = request.form.get('special_request', 'N/A')
+        special_request = request.form.get('special_request', '')
 
         # Validate booking
-        if num_four_table > restaurant['four_table_rem'] or num_two_table > restaurant['two_table_rem']:
+        if selected_date not in restaurant['slots'] or selected_slot not in restaurant['slots'][selected_date]:
+            flash("Invalid date or time slot selected!", "danger")
+            return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
+
+        slot_data = restaurant['slots'][selected_date][selected_slot]
+        if num_four_table > slot_data['four_table_rem'] or num_two_table > slot_data['two_table_rem']:
             flash("Not enough tables available for your booking!", "danger")
             return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
 
-        # Update restaurant table availability
-        restaurant_db.update(
-            {
-                'four_table_rem': restaurant['four_table_rem'] - num_four_table,
-                'two_table_rem': restaurant['two_table_rem'] - num_two_table
-            },
-            Query().id == restaurant_id
-        )
+        # Update table availability
+        slot_data['four_table_rem'] -= num_four_table
+        slot_data['two_table_rem'] -= num_two_table
+        restaurant['slots'][selected_date][selected_slot] = slot_data
+        restaurant_db.update({'slots': restaurant['slots']}, Query().id == restaurant_id)
 
         # Add booking to the bookings table
         booking_id = len(bookings_db) + 1
@@ -186,8 +191,8 @@ def restaurant_booking(restaurant_id):
             'restaurant_name': restaurant['name'],
             'four_table': num_four_table,
             'two_table': num_two_table,
-            'date': date,
-            'time': time,
+            'date': selected_date,
+            'slot': selected_slot,
             'special_request': special_request,
             'status': 'ongoing'
         })
@@ -195,7 +200,7 @@ def restaurant_booking(restaurant_id):
         flash("Booking confirmed!", "success")
         return redirect(url_for('profile'))
 
-    return render_template('restaurant/book.html', restaurant=restaurant)
+    return render_template('restaurant/book.html', restaurant=restaurant, available_dates=available_dates)
 
 #Admin Functionality
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
@@ -216,22 +221,55 @@ def admin_dashboard():
         filename = secure_filename(photo.filename)
         photo.save(os.path.join("static/images", filename))
 
+        # Initialize slots for the next 7 days
+        slots = {}
+        today = datetime.now().date()
+        time_slots = [
+            "9am-11am", "11am-1pm", "1pm-3pm", "3pm-5pm", "5pm-7pm", "7pm-9pm", "9pm-11pm"
+        ]
+        for i in range(7):
+            date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
+            slots[date] = {
+                slot: {"four_table_rem": four_table, "two_table_rem": two_table} for slot in time_slots
+            }
+
         # Insert restaurant data into TinyDB
-        restaurant_id = len(restaurant_db) + 1  # Simple ID generation
+        restaurant_id = len(restaurant_db) + 1
         restaurant_db.insert({
             'id': restaurant_id,
             'name': name,
-            'four_table': four_table,
-            'two_table': two_table,
-            'four_table_rem': four_table,
-            'two_table_rem': two_table,
-            'photo': filename
+            'photo': filename,
+            'slots': slots
         })
 
         flash('Restaurant added successfully!', 'success')
         return redirect(url_for('admin_dashboard'))
 
     return render_template('admin/home.html', form=form)
+
+#Cron Job to Update Slots
+def update_slots():
+    today = datetime.now().date()
+    next_week_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+    time_slots = [
+        "9am-11am", "11am-1pm", "1pm-3pm", "3pm-5pm", "5pm-7pm", "7pm-9pm", "9pm-11pm"
+    ]
+
+    for restaurant in restaurant_db.all():
+        slots = restaurant['slots']
+        # Remove today's date
+        oldest_date = min(slots.keys())
+        if oldest_date <= today.strftime("%Y-%m-%d"):
+            slots.pop(oldest_date)
+
+        # Add next week's date
+        if next_week_date not in slots:
+            slots[next_week_date] = {
+                slot: {"four_table_rem": restaurant['four_table'], "two_table_rem": restaurant['two_table']} for slot in time_slots
+            }
+
+        # Update restaurant slots
+        restaurant_db.update({'slots': slots}, Query().id == restaurant['id'])
 
 # Run the app
 if __name__ == "__main__":

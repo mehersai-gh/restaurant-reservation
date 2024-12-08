@@ -3,26 +3,32 @@
 <div class="container">
     <h2>Book a Table at {{ restaurant.name }}</h2>
     <div class="row">
-        <div class="col-md-3">
-        <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="img-fluid" alt="{{ restaurant.name }}">
+        <div class="col-sm-3">
+            <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="img-fluid" alt="{{ restaurant.name }}">
         </div>
-        <div class="col-md-9">
+        <div class="col-sm-9">
             <form method="POST">
                 <div class="mb-3">
+                    <label for="date" class="form-label">Date</label>
+                    <select class="form-control" id="date" name="date" required>
+                        {% for date in available_dates %}
+                        <option value="{{ date }}">{{ date }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="slot" class="form-label">Time Slot</label>
+                    <select class="form-control" id="slot" name="slot" required>
+                        <!-- Slots will be dynamically populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label for="four_table" class="form-label">Number of 4-Seater Tables</label>
-                    <input type="number" class="form-control" id="four_table" name="four_table" min="0" max="{{ restaurant.four_table_rem }}">
+                    <input type="number" class="form-control" id="four_table" name="four_table" min="0">
                 </div>
                 <div class="mb-3">
                     <label for="two_table" class="form-label">Number of 2-Seater Tables</label>
-                    <input type="number" class="form-control" id="two_table" name="two_table" min="0" max="{{ restaurant.two_table_rem }}">
-                </div>
-                <div class="mb-3">
-                    <label for="date" class="form-label">Date</label>
-                    <input type="date" class="form-control" id="date" name="date" required>
-                </div>
-                <div class="mb-3">
-                    <label for="time" class="form-label">Time</label>
-                    <input type="time" class="form-control" id="time" name="time" required>
+                    <input type="number" class="form-control" id="two_table" name="two_table" min="0">
                 </div>
                 <div class="mb-3">
                     <label for="special_request" class="form-label">Special Request</label>
@@ -33,4 +39,36 @@
         </div>
     </div>
 </div>
+
+<!-- Script to Update the Slots Dynamically Based on the Date Drop Down-->
+<script>
+    // Data from the server
+    const restaurantSlots = {{ restaurant.slots|tojson }};
+    const slotDropdown = document.getElementById('slot');
+    const dateDropdown = document.getElementById('date');
+
+    // Function to populate slots based on selected date
+    function populateSlots(selectedDate) {
+        // Clear existing options
+        slotDropdown.innerHTML = '';
+
+        // Get the slots for the selected date
+        const slots = restaurantSlots[selectedDate];
+        for (const [slot, data] of Object.entries(slots)) {
+            const option = document.createElement('option');
+            option.value = slot;
+            option.textContent = `${slot} (4-Seaters: ${data.four_table_rem}, 2-Seaters: ${data.two_table_rem})`;
+            slotDropdown.appendChild(option);
+        }
+    }
+
+    // Event listener for date change
+    dateDropdown.addEventListener('change', function () {
+        populateSlots(this.value);
+    });
+
+    // Initialize slots for the first date
+    populateSlots(dateDropdown.value);
+</script>
 {% endblock %}
+
