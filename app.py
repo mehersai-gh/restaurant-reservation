@@ -257,7 +257,9 @@ def admin_dashboard_add():
             'id': int(restaurant_id),
             'name': name,
             'photo': filename,
-            'slots': slots
+            'slots': slots,
+            'four_table': four_table,
+            'two_table':two_table
         })
 
         flash('Restaurant added successfully!', 'success')
@@ -282,6 +284,7 @@ def delete_restaurant(restaurant_id):
 
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/update_slots', methods=['POST'])
 #Cron Job to Update Slots
 def update_slots():
     today = datetime.now().date()
@@ -290,21 +293,27 @@ def update_slots():
         "9am-11am", "11am-1pm", "1pm-3pm", "3pm-5pm", "5pm-7pm", "7pm-9pm", "9pm-11pm"
     ]
 
-    for restaurant in restaurant_db.all():
-        slots = restaurant['slots']
-        # Remove today's date
-        oldest_date = min(slots.keys())
-        if oldest_date <= today.strftime("%Y-%m-%d"):
-            slots.pop(oldest_date)
+    try:
+        for restaurant in restaurant_db.all():
+            slots = restaurant['slots']
+            # Remove today's date
+            oldest_date = min(slots.keys())
+            if oldest_date <= today.strftime("%Y-%m-%d"):
+                slots.pop(oldest_date)
 
-        # Add next week's date
-        if next_week_date not in slots:
-            slots[next_week_date] = {
-                slot: {"four_table_rem": restaurant['four_table'], "two_table_rem": restaurant['two_table']} for slot in time_slots
-            }
+            # Add next week's date
+            if next_week_date not in slots:
+                slots[next_week_date] = {
+                    slot: {"four_table_rem": restaurant['four_table'], "two_table_rem": restaurant['two_table']} for slot in time_slots
+                }
 
-        # Update restaurant slots
-        restaurant_db.update({'slots': slots}, Query().id == restaurant['id'])
+            
+                # Update restaurant slots
+                restaurant_db.update({'slots': slots}, Query().id == restaurant['id'])
+        flash("Slots have been successfully updated.", "success")
+    except Exception as e:
+        flash("An error occurred while updating slots: " + str(e), "danger")
+    return redirect(url_for('admin_dashboard'))
 
 # Run the app
 if __name__ == "__main__":

@@ -1,10 +1,24 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <div class="row" style="display: flex;justify-content: space-between;">
-        <div class="col-sm-4"><h1 class="text-center">Admin Dashboard</h1></div>
-        <div class="col-sm-2">
-            <a href="{{ url_for('admin_dashboard_add') }}" class="btn btn-primary">Add New Restaurant</a>
+    <div class="d-flex justify-content-between align-items-center">
+        <!-- Left Column -->
+        <div class="col-sm-4">
+            <h1 class="text-left">Admin Dashboard</h1>
+        </div>
+        
+        <!-- Right Columns -->
+        <div class="d-flex">
+            <div class="col-sm-8 me-2">
+                <a href="{{ url_for('admin_dashboard_add') }}" class="btn btn-primary">Add New Restaurant</a>
+            </div>
+            <div class="col-md-5">
+                <form id="updateSlotsForm" action="{{ url_for('update_slots') }}" method="POST">
+                    <button type="submit" id="updateSlotsButton" class="btn btn-warning" style="position: relative;">
+                        <span id="buttonText">Update Slots</span>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
     <div class="row">
