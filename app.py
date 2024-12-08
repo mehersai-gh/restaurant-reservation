@@ -23,7 +23,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # TinyDB Setup
-db = TinyDB('db/db.json')  # Local database file
+user_db = TinyDB('db/user_db.json')  # Local database file
 UserQuery = Query()
 
 # User Model
@@ -34,7 +34,7 @@ class User(UserMixin):
 # Login Manager Loader
 @login_manager.user_loader
 def load_user(user_id):
-    user = db.get(UserQuery.username == user_id)
+    user = user_db.get(UserQuery.username == user_id)
     if user:
         return User(user_id)
     return None
@@ -47,7 +47,7 @@ class LoginForm(FlaskForm):
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=5)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
 
@@ -62,7 +62,7 @@ def login():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
-        user = db.get(UserQuery.username == username)
+        user = user_db.get(UserQuery.username == username)
         if user and check_password_hash(user['password'], password):
             login_user(User(id=username))
             flash("Logged in successfully!", "success")
@@ -77,12 +77,12 @@ def register():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
-        if db.get(UserQuery.username == username):
+        if user_db.get(UserQuery.username == username):
             flash("Username already exists!", "warning")
         else:
             # Hash the password before storing it
             hashed_password = generate_password_hash(password, method='scrypt')
-            db.insert({'username': username, 'password': hashed_password})
+            user_db.insert({'username': username, 'password': hashed_password})
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login'))
     return render_template('register.html', form=form)
