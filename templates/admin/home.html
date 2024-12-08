@@ -11,7 +11,16 @@
         {% for restaurant in restaurants %}
         <div class="col-md-4">
             <div class="card">
-                <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
+                <div class="position-relative">
+                    <img src="{{ url_for('static', filename='images/' ~ restaurant.photo) }}" class="card-img-top" alt="{{ restaurant.name }}">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute" style="top: 10px; right: 10px;" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal" 
+                            data-restaurant-id="{{ restaurant.id }}" 
+                            data-restaurant-name="{{ restaurant.name }}">
+                        X
+                    </button>
+                </div>
                 <div class="card-body">
                     <h5 class="card-title text-center">
                         <a href="{{ url_for('restaurant_detail', restaurant_id=restaurant.id) }}">{{ restaurant.name }}</a>
@@ -22,4 +31,42 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="restaurantName"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget; // Button that triggered the modal
+        const restaurantName = button.getAttribute('data-restaurant-name');
+        const restaurantId = button.getAttribute('data-restaurant-id');
+
+        // Update modal content
+        const restaurantNameElem = deleteModal.querySelector('#restaurantName');
+        restaurantNameElem.textContent = restaurantName;
+
+        // Update form action
+        const deleteForm = deleteModal.querySelector('#deleteForm');
+        deleteForm.action = `/delete_restaurant/${restaurantId}`;
+    });
+</script>
 {% endblock %}

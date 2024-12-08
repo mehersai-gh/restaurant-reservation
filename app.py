@@ -254,7 +254,7 @@ def admin_dashboard_add():
         # Insert restaurant data into TinyDB
         restaurant_id = len(restaurant_db) + 1
         restaurant_db.insert({
-            'id': restaurant_id,
+            'id': int(restaurant_id),
             'name': name,
             'photo': filename,
             'slots': slots
@@ -264,6 +264,23 @@ def admin_dashboard_add():
         return redirect(url_for('admin_dashboard'))
 
     return render_template('admin/add_restaurant.html', form=form)
+
+@app.route('/delete_restaurant/<int:restaurant_id>', methods=['POST'])
+@login_required
+def delete_restaurant(restaurant_id):
+    if current_user.id != 'admin':
+        abort(403)  # Return a "Forbidden" error
+
+    print(restaurant_db.get(Query().id == 1))
+    # Fetch the restaurant by ID and delete it
+    restaurant = restaurant_db.get(Query().id == restaurant_id)
+    if restaurant:
+        restaurant_db.remove(Query().id == restaurant_id)
+        flash(f"Restaurant '{restaurant['name']}' has been deleted.", 'success')
+    else:
+        flash("Restaurant not found.", 'danger')
+
+    return redirect(url_for('admin_dashboard'))
 
 #Cron Job to Update Slots
 def update_slots():
