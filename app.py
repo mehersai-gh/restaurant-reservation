@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from tinydb import TinyDB, Query
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -86,6 +86,13 @@ def logout():
 @login_required
 def profile():
     return render_template('profile.html', name=current_user.id)
+
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if current_user.id != 'admin':
+        abort(403)  # Return a "Forbidden" error
+    return render_template('admin/home.html')
 
 # Run the app
 if __name__ == "__main__":
