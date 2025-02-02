@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Booking Confirmation</title>
+</head>
+<body>
+    <h2>Hello {{ username }},</h2>
+    <p>Your booking at <strong>{{ restaurant_name }}</strong> has been successfully confirmed!</p>
+    <p><strong>Date:</strong> {{ booking_date }}</p>
+    <p><strong>Time Slot:</strong> {{ booking_slot }}</p>
+    <p><strong>Tables Booked:</strong> {{ four_table }} four-seater, {{ two_table }} two-seater</p>
+
+    {% if special_request %}
+    <p><strong>Special Request:</strong> {{ special_request }}</p>
+    {% endif %}
+
+    <br>
+    <p>We look forward to serving you!</p>
+    <p>Regards,</p>
+    <p><strong>Restaurant Reservation Team</strong></p>
+</body>
+</html>

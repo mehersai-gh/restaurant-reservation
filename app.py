@@ -229,7 +229,23 @@ def restaurant_booking(restaurant_id):
             'status': 'ongoing'
         })
 
-        flash("Booking confirmed!", "success")
+        # Fetch user details (assuming email is stored in user_db)
+        user = user_db.get(Query().username == current_user.id)
+        if user and "email" in user:
+            send_email(
+                to_email=user["email"],
+                subject="Your Restaurant Booking Confirmation",
+                usage="booking_confirmation",
+                username=user["username"],
+                restaurant_name=restaurant["name"],
+                booking_date=selected_date,
+                booking_slot=selected_slot,
+                four_table=num_four_table,
+                two_table=num_two_table,
+                special_request=special_request
+            )
+
+        flash("Booking confirmed! A confirmation email has been sent.", "success")
         return redirect(url_for('profile'))
 
     return render_template('restaurant/book.html', restaurant=restaurant, available_dates=available_dates)

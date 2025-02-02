@@ -24,7 +24,7 @@ def load_email_template(template_name, **kwargs):
 
     # Replace placeholders with actual values
     for key, value in kwargs.items():
-        template_content = template_content.replace(f"{{{{ {key} }}}}", value)
+        template_content = template_content.replace(f"{{{{ {key} }}}}", str(value))
 
     return template_content
 
