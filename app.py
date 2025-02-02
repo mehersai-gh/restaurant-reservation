@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
+#Importing functions
+from helpers.smtp import send_email
+
 #Importing Forms
 from forms.user_forms import LoginForm, RegisterForm
 from forms.restaurant_forms import RestaurantForm
@@ -71,12 +74,17 @@ def register():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
+        email = form.email.data  # Ensure your form has an email field
+
         if user_db.get(Query().username == username):
             flash("Username already exists!", "warning")
         else:
-            # Hash the password before storing it
             hashed_password = generate_password_hash(password, method='scrypt')
-            user_db.insert({'username': username, 'password': hashed_password})
+            user_db.insert({'username': username, 'password': hashed_password, 'email': email})
+
+            # Send confirmation email using the new templating system
+            send_email(email, "register", username=username)
+
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login'))
     return render_template('register.html', form=form)
