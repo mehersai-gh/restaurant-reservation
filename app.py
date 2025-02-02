@@ -1,4 +1,5 @@
 import os
+import razorpay
 
 from flask import Flask, render_template, redirect, url_for, request, flash, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -9,6 +10,7 @@ from werkzeug.utils import secure_filename
 
 #Importing functions
 from helpers.smtp import send_email
+from helpers.payment_gateway import create_order, razorpay_client, RAZORPAY_KEY_ID
 
 #Importing Forms
 from forms.user_forms import LoginForm, RegisterForm
@@ -191,14 +193,12 @@ def restaurant_booking(restaurant_id):
     available_dates = [(today + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
 
     if request.method == 'POST':
-        # Get form data
         selected_date = request.form.get('date')
         selected_slot = request.form.get('slot')
         num_four_table = int(request.form.get('four_table', 0))
         num_two_table = int(request.form.get('two_table', 0))
         special_request = request.form.get('special_request', '')
 
-        # Validate booking
         if selected_date not in restaurant['slots'] or selected_slot not in restaurant['slots'][selected_date]:
             flash("Invalid date or time slot selected!", "danger")
             return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
@@ -208,47 +208,40 @@ def restaurant_booking(restaurant_id):
             flash("Not enough tables available for your booking!", "danger")
             return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
 
-        # Update table availability
-        slot_data['four_table_rem'] -= num_four_table
-        slot_data['two_table_rem'] -= num_two_table
-        restaurant['slots'][selected_date][selected_slot] = slot_data
-        restaurant_db.update({'slots': restaurant['slots']}, Query().id == restaurant_id)
+        # Define price per table (Modify as per your requirement)
+        price_per_four_seater = 500
+        price_per_two_seater = 300
 
-        # Add booking to the bookings table
-        booking_id = len(bookings_db) + 1
-        bookings_db.insert({
-            'id': booking_id,
-            'user': current_user.id,
-            'restaurant_id': restaurant_id,
-            'restaurant_name': restaurant['name'],
-            'four_table': num_four_table,
-            'two_table': num_two_table,
-            'date': selected_date,
-            'slot': selected_slot,
-            'special_request': special_request,
-            'status': 'ongoing'
-        })
+        total_amount = (num_four_table * price_per_four_seater) + (num_two_table * price_per_two_seater)
 
-        # Fetch user details (assuming email is stored in user_db)
-        user = user_db.get(Query().username == current_user.id)
-        if user and "email" in user:
-            send_email(
-                to_email=user["email"],
-                subject="Your Restaurant Booking Confirmation",
-                usage="booking_confirmation",
-                username=user["username"],
-                restaurant_name=restaurant["name"],
-                booking_date=selected_date,
-                booking_slot=selected_slot,
-                four_table=num_four_table,
-                two_table=num_two_table,
-                special_request=special_request
-            )
+        # Create Razorpay order
+        order = create_order(amount=total_amount, receipt=f"booking_{restaurant_id}_{current_user.id}")
 
-        flash("Booking confirmed! A confirmation email has been sent.", "success")
-        return redirect(url_for('profile'))
+        return render_template('restaurant/payment.html', restaurant=restaurant, order=order, amount=total_amount, key_id=RAZORPAY_KEY_ID)
 
     return render_template('restaurant/book.html', restaurant=restaurant, available_dates=available_dates)
+
+@app.route('/payment_success', methods=['POST'])
+@login_required
+def payment_success():
+    """Handles payment confirmation"""
+    payment_id = request.form.get('razorpay_payment_id')
+    order_id = request.form.get('razorpay_order_id')
+    signature = request.form.get('razorpay_signature')
+
+    # Verify payment signature
+    try:
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': order_id,
+            'razorpay_payment_id': payment_id,
+            'razorpay_signature': signature
+        })
+    except razorpay.errors.SignatureVerificationError:
+        flash("Payment verification failed!", "danger")
+        return redirect(url_for('restaurant_booking'))
+
+    flash("Payment successful! Your booking has been confirmed.", "success")
+    return redirect(url_for('profile'))
 
 #Admin Functionality
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
