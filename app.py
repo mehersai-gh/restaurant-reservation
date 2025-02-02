@@ -151,7 +151,23 @@ def cancel_booking(booking_id):
     # Update the booking status to "cancelled"
     bookings_db.update({'status': 'cancelled'}, Query().id == booking_id)
 
-    flash("Booking cancelled successfully!", "success")
+    try:
+        # Fetch user details (assuming you store email in user_db)
+        user = user_db.get(Query().username == current_user.id)
+        if user and "email" in user:
+            send_email(
+                to_email=user["email"],
+                subject="Booking Cancellation Confirmation",
+                usage="booking_cancellation",
+                username=user["username"],
+                restaurant_name=restaurant["name"],
+                booking_date=booking_date,
+                booking_slot=booking_slot
+            )
+    except Exception as e:
+        flash(e)
+
+    flash("Booking cancelled successfully! An email confirmation has been sent.", "success")
     return redirect(url_for('profile_bookings'))
 
 
