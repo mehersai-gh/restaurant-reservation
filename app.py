@@ -1,7 +1,7 @@
 import os
 import razorpay
 
-from flask import Flask, render_template, redirect, url_for, request, flash, abort
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
@@ -207,6 +207,16 @@ def restaurant_booking(restaurant_id):
         if num_four_table > slot_data['four_table_rem'] or num_two_table > slot_data['two_table_rem']:
             flash("Not enough tables available for your booking!", "danger")
             return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
+        
+        # Store booking details in session before redirecting
+        session['booking_details'] = {
+            'restaurant_id': restaurant_id,
+            'date': selected_date,
+            'slot': selected_slot,
+            'four_table': num_four_table,
+            'two_table': num_two_table,
+            'special_request': special_request
+        }
 
         # Define price per table (Modify as per your requirement)
         price_per_four_seater = 500
@@ -229,6 +239,20 @@ def payment_success():
     order_id = request.form.get('razorpay_order_id')
     signature = request.form.get('razorpay_signature')
 
+    # Retrieve booking details from session (or use a DB if you store orders)
+    booking_details = session.get('booking_details')
+
+    if not booking_details:
+        flash("Booking details not found. Please contact support.", "danger")
+        return redirect(url_for('restaurant_booking', restaurant_id=booking_details['restaurant_id']))
+
+    restaurant_id = booking_details['restaurant_id']
+    selected_date = booking_details['date']
+    selected_slot = booking_details['slot']
+    num_four_table = booking_details['four_table']
+    num_two_table = booking_details['two_table']
+    special_request = booking_details.get('special_request', '')
+
     # Verify payment signature
     try:
         razorpay_client.utility.verify_payment_signature({
@@ -238,9 +262,58 @@ def payment_success():
         })
     except razorpay.errors.SignatureVerificationError:
         flash("Payment verification failed!", "danger")
-        return redirect(url_for('restaurant_booking'))
+        return redirect(url_for('restaurant_booking', restaurant_id=restaurant_id))
 
-    flash("Payment successful! Your booking has been confirmed.", "success")
+    # Fetch restaurant details
+    restaurant = restaurant_db.get(Query().id == restaurant_id)
+    if not restaurant:
+        flash("Restaurant not found!", "danger")
+        return redirect(url_for('profile'))
+
+    slot_data = restaurant['slots'][selected_date][selected_slot]
+
+    # Update table availability
+    slot_data['four_table_rem'] -= num_four_table
+    slot_data['two_table_rem'] -= num_two_table
+    restaurant['slots'][selected_date][selected_slot] = slot_data
+    restaurant_db.update({'slots': restaurant['slots']}, Query().id == restaurant_id)
+
+    # Add booking to database
+    booking_id = len(bookings_db) + 1
+    bookings_db.insert({
+        'id': booking_id,
+        'user': current_user.id,
+        'restaurant_id': restaurant_id,
+        'restaurant_name': restaurant['name'],
+        'four_table': num_four_table,
+        'two_table': num_two_table,
+        'date': selected_date,
+        'slot': selected_slot,
+        'special_request': special_request,
+        'status': 'ongoing',
+        'payment_id': payment_id
+    })
+
+    # Fetch user details
+    user = user_db.get(Query().username == current_user.id)
+    if user and "email" in user:
+        send_email(
+            to_email=user["email"],
+            subject="Your Restaurant Booking Confirmation",
+            usage="booking_confirmation",
+            username=user["username"],
+            restaurant_name=restaurant["name"],
+            booking_date=selected_date,
+            booking_slot=selected_slot,
+            four_table=num_four_table,
+            two_table=num_two_table,
+            special_request=special_request
+        )
+
+    # Clear session data
+    session.pop('booking_details', None)
+
+    flash("Payment successful! Your booking has been confirmed. A confirmation email has been sent.", "success")
     return redirect(url_for('profile'))
 
 #Admin Functionality
