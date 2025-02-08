@@ -34,11 +34,89 @@
                     <label for="special_request" class="form-label">Special Request</label>
                     <textarea class="form-control" id="special_request" name="special_request" rows="3" maxlength="100"></textarea>
                 </div>
+                <button type="button" class="btn btn-secondary" onclick="openMenuModal()">Select Menu</button>
                 <button type="submit" class="btn btn-primary">Confirm Booking</button>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Modern Modal for Menu Selection -->
+<div id="menuModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Select Menu Items</h3>
+        <div id="menuItems"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeMenuModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="addMenuToRequest()">Done</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 300px;
+}
+.modal-actions {
+    margin-top: 10px;
+}
+.modal-actions button {
+    margin: 5px;
+}
+</style>
+
+<script>
+const menuItems = ["Paneer Chilly", "Pepper Mushroom", "Gobi Manchurian", "Chicken Majestic", "Mutton Ghee Roast", "Fish Chilly", "Paneer Biryani","Chicken Biryani","Mutton Biryani"];
+const menuContainer = document.getElementById("menuItems");
+const modal = document.getElementById("menuModal");
+const specialRequestField = document.getElementById("special_request");
+
+function openMenuModal() {
+    menuContainer.innerHTML = "";
+    menuItems.forEach(item => {
+        menuContainer.innerHTML += `
+            <div class='menu-item'>
+                <label>${item}</label>
+                <input type='number' min='0' value='0' id='menu_${item}'>
+            </div>
+        `;
+    });
+    modal.style.display = "flex";
+}
+
+function closeMenuModal() {
+    modal.style.display = "none";
+}
+
+function addMenuToRequest() {
+    let selectedMenu = [];
+    menuItems.forEach(item => {
+        let quantity = document.getElementById(`menu_${item}`).value;
+        if (quantity > 0) {
+            selectedMenu.push(`${item} x${quantity}`);
+        }
+    });
+    if (selectedMenu.length > 0) {
+        specialRequestField.value += `\nMenu: ${selectedMenu.join(", ")}`;
+    }
+    closeMenuModal();
+}
+</script>
 
 <!-- Script to Update the Slots Dynamically Based on the Date Drop Down-->
 <script>
